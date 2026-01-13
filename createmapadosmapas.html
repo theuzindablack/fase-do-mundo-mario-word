@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Mario Maker - Codigo Unico</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #1a1a1a; font-family: sans-serif; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        #menu { background: #2c3e50; padding: 10px; display: flex; gap: 10px; border-bottom: 2px solid #000; }
+        #main { display: flex; flex: 1; }
+        #sidebar { width: 120px; background: #34495e; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+        #view { flex: 1; overflow: auto; background: #000; position: relative; }
+        #grid { display: grid; grid-template-columns: repeat(60, 40px); grid-template-rows: repeat(60, 40px); }
+        .cell { width: 40px; height: 40px; border: 1px solid rgba(255,255,255,0.05); position: relative; }
+        .color-btn { width: 100%; height: 30px; cursor: pointer; border: 2px solid #fff; }
+        button { padding: 5px 10px; cursor: pointer; font-weight: bold; }
+        .active { background: yellow !important; color: black; }
+        
+        /* VISUAIS DO EDITOR */
+        .path-v { position: absolute; inset: 0; background: rgba(0,255,255,0.3); border: 1px solid cyan; pointer-events: none; }
+        .fase-v { position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; background: red; border-radius: 50%; border: 2px solid #fff; }
+        #mario { position: absolute; width: 40px; height: 40px; background: red; border: 3px solid #fff; z-index: 100; transition: 0.1s; display: none; }
+    </style>
+</head>
+<body>
+
+<div id="menu">
+    <button id="b-draw" onclick="setTool('draw')" class="active">🖌️ SOLO</button>
+    <button id="b-path" onclick="setTool('path')">🟦 CAMINHO</button>
+    <button id="b-fase" onclick="setTool('fase')">🔴 FASE</button>
+    <button id="b-mario" onclick="setTool('mario')">🚩 MARIO</button>
+    <button id="b-erase" onclick="setTool('erase')">🧽 APAGAR</button>
+    <button onclick="gerarCodigo()" style="margin-left:auto; background: #27ae60; color: white;">📋 PEGAR CÓDIGO DO JOGO</button>
+</div>
+
+<div id="main">
+    <div id="sidebar">
+        <div class="color-btn" style="background:#2ecc71" onclick="setColor('#2ecc71')"></div>
+        <div class="color-btn" style="background:#3498db" onclick="setColor('#3498db')"></div>
+        <div class="color-btn" style="background:#e67e22" onclick="setColor('#e67e22')"></div>
+        <div class="color-btn" style="background:#f1c40f" onclick="setColor('#f1c40f')"></div>
+    </div>
+    <div id="view">
+        <div id="grid"></div>
+        <div id="mario"></div>
+    </div>
+</div>
+
+<textarea id="output" style="display:none; position:fixed; top:50px; left:50px; width:80%; height:80%; z-index:1000; background:#eee; color:#333; padding:20px; font-family:monospace;"></textarea>
+<button id="close-out" style="display:none; position:fixed; top:10px; right:10px; z-index:1001; background:red; color:#fff;" onclick="this.style.display='none'; document.getElementById('output').style.display='none'">FECHAR</button>
+
+<script>
+    const grid = document.getElementById('grid');
+    const mario = document.getElementById('mario');
+    let tool = 'draw', color = '#2ecc71', px=0, py=0;
+    let paths = {}, phases = {};
+
+    for (let i = 0; i < 60*60; i++) {
+        const c = document.createElement('div');
+        c.className = 'cell';
+        const x = i%60, y = Math.floor(i/60);
+        c.onmousedown = () => draw(c, x, y);
+        c.onmouseover = (e) => { if(e.buttons==1) draw(c, x, y); };
+        grid.appendChild(c);
+    }
+
+    function draw(el, x, y) {
+        const k = x+','+y;
+        if(tool=='draw') el.style.backgroundColor = color;
+        if(tool=='path' && !paths[k]) {
+            let p = document.createElement('div'); p.className='path-v'; el.appendChild(p); paths[k]=1;
+        }
+        if(tool=='fase' && !phases[k]) {
+            let f = document.createElement('div'); f.className='fase-v'; el.appendChild(f); phases[k]=1; paths[k]=1;
+        }
+        if(tool=='mario') {
+            px=x; py=y; mario.style.display='block'; mario.style.left=(x*40)+'px'; mario.style.top=(y*40)+'px'; paths[k]=1;
+        }
+        if(tool=='erase') {
+            el.innerHTML=''; el.style.backgroundColor=''; delete paths[k]; delete phases[k];
+        }
+    }
+
+    function setTool(t) { 
+        tool=t; document.querySelectorAll('#menu button').forEach(b=>b.classList.remove('active'));
+        document.getElementById('b-'+t).classList.add('active');
+    }
+    function setColor(c) { color=c; tool='draw'; setTool('draw'); }
+
+    function gerarCodigo() {
+        const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { background: #000; margin: 0; overflow: hidden; }
+        #v { width: 100vw; height: 100vh; overflow: auto; position: relative; }
+        #g { display: grid; grid-template-columns: repeat(60, 40px); grid-template-rows: repeat(60, 40px); }
+        .cell { width: 40px; height: 40px; position: relative; }
+        .fase-v { position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; background: red; border-radius: 50%; border: 2px solid #fff; }
+        #m { position: absolute; width: 40px; height: 40px; background: red; border: 3px solid #fff; transition: 0.12s linear; }
+        .path-v { display: none; }
+    </style>
+</head>
+<body>
+    <div id="v">
+        <div id="g">${grid.innerHTML}</div>
+        <div id="m" style="left:${mario.style.left}; top:${mario.style.top}"></div>
+    </div>
+    <script>
+        const paths = ${JSON.stringify(paths)};
+        const phases = ${JSON.stringify(phases)};
+        let x = ${px}, y = ${py}, moving = false;
+        const m = document.getElementById('m'), v = document.getElementById('v');
+
+        async function go(dx, dy) {
+            if(moving) return; moving = true;
+            while(true) {
+                let nx = x + dx, ny = y + dy;
+                if(paths[nx+','+ny]) {
+                    x = nx; y = ny;
+                    m.style.left = (x*40)+'px'; m.style.top = (y*40)+'px';
+                    v.scrollLeft = (x*40) - window.innerWidth/2; v.scrollTop = (y*40) - window.innerHeight/2;
+                    await new Promise(r => setTimeout(r, 120));
+                    if(phases[x+','+y]) break;
+                    let ds = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}].filter(d => (d.dx!=-dx||d.dy!=-dy) && paths[(x+d.dx)+','+(y+d.dy)]);
+                    if(ds.length==1) { dx=ds[0].dx; dy=ds[0].dy; } else break;
+                } else break;
+            }
+            moving = false;
+        }
+        window.onkeydown = (e) => {
+            if(e.key=="ArrowRight") go(1,0); if(e.key=="ArrowLeft") go(-1,0);
+            if(e.key=="ArrowUp") go(0,-1); if(e.key=="ArrowDown") go(0,1);
+        };
+    <\/script>
+</body>
+</html>`;
+        const out = document.getElementById('output');
+        out.value = html.trim();
+        out.style.display = 'block';
+        document.getElementById('close-out').style.display = 'block';
+        out.select();
+    }
+</script>
+</body>
+</html>
